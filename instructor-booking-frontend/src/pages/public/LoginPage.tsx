@@ -1,13 +1,16 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Link, useNavigate } from "react-router-dom";
+import { Loader2 } from "lucide-react";
 
 import { loginSchema, type LoginFormValues } from "../../features/auth/auth.schema";
 import { useLogin } from "../../features/auth/auth.mutation";
+import { useToast } from "../../provider/toast-provider";
 
 function LoginPage() {
     const navigate = useNavigate();
     const loginMutation = useLogin();
+    const toast = useToast();
 
     const {
         register,
@@ -21,12 +24,18 @@ function LoginPage() {
         loginMutation.mutate(values, {
             onSuccess: (response) => {
                 const role = response.data.user.role;
+                toast.success(`Welcome back, ${response.data.user.name}!`);
 
                 navigate(
                     role === "instructor"
                         ? "/instructor/dashboard"
                         : "/student/dashboard",
                 );
+            },
+            onError: (err: any) => {
+                const message =
+                    err?.response?.data?.message || err?.message || "Invalid email or password.";
+                toast.error(message);
             },
         });
     };
@@ -93,9 +102,16 @@ function LoginPage() {
                     <button
                         type="submit"
                         disabled={loginMutation.isPending}
-                        className="w-full rounded-lg bg-indigo-600 py-3 font-medium text-white transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-60"
+                        className="flex w-full items-center justify-center gap-2 rounded-lg bg-indigo-600 py-3 font-medium text-white transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-60"
                     >
-                        {loginMutation.isPending ? "Signing in..." : "Sign In"}
+                        {loginMutation.isPending ? (
+                            <>
+                                <Loader2 size={18} className="animate-spin" />
+                                <span>Signing in...</span>
+                            </>
+                        ) : (
+                            <span>Sign In</span>
+                        )}
                     </button>
                 </div>
 

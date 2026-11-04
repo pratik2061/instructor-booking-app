@@ -3,10 +3,12 @@ import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { CheckCircle2, Loader2, Video, Calendar, ArrowRight } from "lucide-react";
 import { paymentService, type VerifySessionResponse } from "../../features/payments/payment.service";
+import { useToast } from "../../provider/toast-provider";
 
 function PaymentSuccessPage() {
     const [searchParams] = useSearchParams();
     const sessionId = searchParams.get("session_id");
+    const toast = useToast();
 
     const [isLoading, setIsLoading] = useState(Boolean(sessionId));
     const [error, setError] = useState<string | null>(null);
@@ -26,16 +28,18 @@ function PaymentSuccessPage() {
                 if (isMounted) {
                     setVerificationData(data);
                     setIsLoading(false);
+                    toast.success("Payment verified! Your 30-minute consultation is booked.");
                 }
             })
             .catch((err) => {
                 if (isMounted) {
                     console.error("Verification failed:", err);
-                    setError(
+                    const message =
                         err?.response?.data?.message ||
-                        "Could not verify session automatically, but your booking is being recorded."
-                    );
+                        "Could not verify session automatically, but your booking is being recorded.";
+                    setError(message);
                     setIsLoading(false);
+                    toast.error(message);
                 }
             });
 

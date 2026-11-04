@@ -2,7 +2,9 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { Loader2 } from "lucide-react";
 import { useCreateAvailability } from "../availability.mutation";
+import { useToast } from "../../../provider/toast-provider";
 
 const availabilitySchema = z.object({
     date: z.string().min(1, "Please select a date"),
@@ -13,6 +15,7 @@ type AvailabilityFormValues = z.infer<typeof availabilitySchema>;
 
 export default function AvailabilityForm() {
     const createAvailability = useCreateAvailability();
+    const toast = useToast();
 
     const {
         register,
@@ -43,7 +46,7 @@ export default function AvailabilityForm() {
         const startDateTime = new Date(`${values.date}T${values.startTime}`);
 
         if (startDateTime.getTime() <= Date.now()) {
-            alert("Please select a date and time in the future.");
+            toast.error("Please select a date and time in the future.");
             return;
         }
 
@@ -54,7 +57,15 @@ export default function AvailabilityForm() {
             },
             {
                 onSuccess: () => {
+                    toast.success("30-minute consultation slot added successfully!");
                     reset();
+                },
+                onError: (err: any) => {
+                    const message =
+                        err?.response?.data?.message ||
+                        err?.message ||
+                        "Failed to create availability slot.";
+                    toast.error(message);
                 },
             },
         );
@@ -138,11 +149,16 @@ export default function AvailabilityForm() {
             <button
                 type="submit"
                 disabled={createAvailability.isPending}
-                className="w-full rounded-lg bg-zinc-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex w-full items-center justify-center gap-2 rounded-lg bg-zinc-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
-                {createAvailability.isPending
-                    ? "Creating..."
-                    : "Add availability"}
+                {createAvailability.isPending ? (
+                    <>
+                        <Loader2 size={16} className="animate-spin" />
+                        <span>Creating slot...</span>
+                    </>
+                ) : (
+                    <span>Add availability (30 mins)</span>
+                )}
             </button>
         </form>
     );

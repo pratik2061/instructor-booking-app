@@ -1,7 +1,8 @@
 
-import { CalendarDays, Clock, Trash2 } from "lucide-react";
+import { CalendarDays, Clock, Trash2, Loader2 } from "lucide-react";
 import type { AvailabilitySlot } from "../availability.types";
 import { useDeleteAvailability } from "../availability.mutation";
+import { useToast } from "../../../provider/toast-provider";
 
 interface AvailabilityCardProps {
     slot: AvailabilitySlot;
@@ -11,6 +12,7 @@ export default function AvailabilityCard({
     slot,
 }: AvailabilityCardProps) {
     const deleteAvailability = useDeleteAvailability();
+    const toast = useToast();
 
     const startDate = new Date(slot.startAt || slot.startTime || "");
     const endDate = new Date(slot.endAt || slot.endTime || "");
@@ -43,7 +45,16 @@ export default function AvailabilityCard({
         );
 
         if (confirmed) {
-            deleteAvailability.mutate(slot._id);
+            deleteAvailability.mutate(slot._id, {
+                onSuccess: () => {
+                    toast.success("Availability slot removed.");
+                },
+                onError: (err: any) => {
+                    const message =
+                        err?.response?.data?.message || err?.message || "Failed to delete slot.";
+                    toast.error(message);
+                },
+            });
         }
     };
 
@@ -75,8 +86,17 @@ export default function AvailabilityCard({
                     disabled={deleteAvailability.isPending}
                     className="inline-flex items-center justify-center gap-2 rounded-lg border border-red-200 px-3 py-2 text-sm font-medium text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                    <Trash2 size={16} />
-                    {deleteAvailability.isPending ? "Deleting..." : "Delete"}
+                    {deleteAvailability.isPending ? (
+                        <>
+                            <Loader2 size={16} className="animate-spin" />
+                            <span>Deleting...</span>
+                        </>
+                    ) : (
+                        <>
+                            <Trash2 size={16} />
+                            <span>Delete</span>
+                        </>
+                    )}
                 </button>
             )}
         </div>

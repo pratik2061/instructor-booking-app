@@ -1,17 +1,20 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Link, useNavigate } from "react-router-dom";
+import { Loader2 } from "lucide-react";
 
 import {
     registerSchema,
     type RegisterFormValues,
 } from "../../features/auth/auth.schema";
 import { useRegister } from "../../features/auth/auth.mutation";
+import { useToast } from "../../provider/toast-provider";
 
 
 function RegisterPage() {
     const navigate = useNavigate();
     const registerMutation = useRegister();
+    const toast = useToast();
 
     const {
         register,
@@ -28,12 +31,18 @@ function RegisterPage() {
         registerMutation.mutate(values, {
             onSuccess: (response) => {
                 const role = response.data.user.role;
+                toast.success(`Account created! Welcome, ${response.data.user.name}.`);
 
                 navigate(
                     role === "instructor"
                         ? "/instructor/dashboard"
                         : "/student/dashboard",
                 );
+            },
+            onError: (err: any) => {
+                const message =
+                    err?.response?.data?.message || err?.message || "Registration failed.";
+                toast.error(message);
             },
         });
     };
@@ -132,11 +141,16 @@ function RegisterPage() {
                     <button
                         type="submit"
                         disabled={registerMutation.isPending}
-                        className="w-full rounded-lg bg-indigo-600 py-3 font-medium text-white transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-60"
+                        className="flex w-full items-center justify-center gap-2 rounded-lg bg-indigo-600 py-3 font-medium text-white transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-60"
                     >
-                        {registerMutation.isPending
-                            ? "Creating account..."
-                            : "Create Account"}
+                        {registerMutation.isPending ? (
+                            <>
+                                <Loader2 size={18} className="animate-spin" />
+                                <span>Creating account...</span>
+                            </>
+                        ) : (
+                            <span>Create Account</span>
+                        )}
                     </button>
                 </div>
 

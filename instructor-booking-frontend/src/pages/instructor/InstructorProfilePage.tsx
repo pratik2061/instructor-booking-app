@@ -2,13 +2,14 @@ import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { CheckCircle2, AlertCircle, UserRound } from "lucide-react";
+import { CheckCircle2, AlertCircle, UserRound, Loader2 } from "lucide-react";
 import { useMyProfile } from "../../features/instructor/instructor.queries";
 import {
     useCreateProfile,
     useUpdateProfile,
 } from "../../features/instructor/instructor.mutation";
 import type { InstructorCurrency } from "../../features/instructor/instructor.types";
+import { useToast } from "../../provider/toast-provider";
 
 const profileSchema = z.object({
     bio: z
@@ -31,6 +32,7 @@ export default function InstructorProfilePage() {
     const profile = (rawProfile as any)?.profile || rawProfile;
     const createProfile = useCreateProfile();
     const updateProfile = useUpdateProfile();
+    const toast = useToast();
 
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
@@ -69,7 +71,7 @@ export default function InstructorProfilePage() {
             .filter(Boolean);
 
         if (expertiseArray.length === 0) {
-            alert("Please provide at least one expertise topic");
+            toast.error("Please provide at least one expertise topic.");
             return;
         }
 
@@ -87,7 +89,13 @@ export default function InstructorProfilePage() {
                 {
                     onSuccess: () => {
                         setSuccessMessage("Profile updated successfully!");
+                        toast.success("Instructor profile updated!");
                         refetch();
+                    },
+                    onError: (err: any) => {
+                        const message =
+                            err?.response?.data?.message || err?.message || "Failed to update profile.";
+                        toast.error(message);
                     },
                 }
             );
@@ -102,7 +110,13 @@ export default function InstructorProfilePage() {
                 {
                     onSuccess: () => {
                         setSuccessMessage("Profile created successfully!");
+                        toast.success("Instructor profile created!");
                         refetch();
+                    },
+                    onError: (err: any) => {
+                        const message =
+                            err?.response?.data?.message || err?.message || "Failed to create profile.";
+                        toast.error(message);
                     },
                 }
             );
@@ -263,13 +277,18 @@ export default function InstructorProfilePage() {
                 <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="w-full rounded-lg bg-indigo-600 py-3 font-medium text-white transition hover:bg-indigo-500 disabled:opacity-50"
+                    className="flex w-full items-center justify-center gap-2 rounded-lg bg-indigo-600 py-3 font-medium text-white transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                    {isSubmitting
-                        ? "Saving..."
-                        : profile
-                            ? "Update Profile"
-                            : "Create Profile"}
+                    {isSubmitting ? (
+                        <>
+                            <Loader2 size={18} className="animate-spin" />
+                            <span>Saving profile...</span>
+                        </>
+                    ) : profile ? (
+                        <span>Update Profile</span>
+                    ) : (
+                        <span>Create Profile</span>
+                    )}
                 </button>
             </form>
         </div>

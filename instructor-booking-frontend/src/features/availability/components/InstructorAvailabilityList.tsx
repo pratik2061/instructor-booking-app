@@ -1,5 +1,8 @@
+import { useState } from "react";
+import { Loader2 } from "lucide-react";
 import { useInstructorAvailability } from "../availability.queries";
 import { useCreateCheckout } from "../../payments/payment.mutation";
+import { useToast } from "../../../provider/toast-provider";
 
 interface Props {
     instructorId: string;
@@ -13,6 +16,8 @@ function InstructorAvailabilityList({ instructorId }: Props) {
         refetch,
     } = useInstructorAvailability(instructorId);
     const checkoutMutation = useCreateCheckout();
+    const toast = useToast();
+    const [pendingSlotId, setPendingSlotId] = useState<string | null>(null);
 
     if (isLoading) {
         return <p>Loading available slots...</p>;
@@ -59,6 +64,9 @@ function InstructorAvailabilityList({ instructorId }: Props) {
                             minute: "2-digit",
                         });
 
+                        const isThisSlotPending =
+                            checkoutMutation.isPending && pendingSlotId === slot._id;
+
                         return (
                             <div
                                 key={slot._id}
@@ -83,15 +91,34 @@ function InstructorAvailabilityList({ instructorId }: Props) {
                                     type="button"
                                     disabled={checkoutMutation.isPending}
                                     onClick={() => {
-                                        checkoutMutation.mutate({
-                                            availabilityId: slot._id,
-                                        });
+                                        setPendingSlotId(slot._id);
+                                        toast.info("Preparing Stripe secure checkout...");
+                                        checkoutMutation.mutate(
+                                            {
+                                                availabilityId: slot._id,
+                                            },
+                                            {
+                                                onError: (err: any) => {
+                                                    setPendingSlotId(null);
+                                                    const message =
+                                                        err?.response?.data?.message ||
+                                                        err?.message ||
+                                                        "Failed to initiate checkout.";
+                                                    toast.error(message);
+                                                },
+                                            }
+                                        );
                                     }}
-                                    className="mt-4 w-full rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
+                                    className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
                                 >
-                                    {checkoutMutation.isPending
-                                        ? "Redirecting to checkout..."
-                                        : "Book 30-min Call"}
+                                    {isThisSlotPending ? (
+                                        <>
+                                            <Loader2 size={16} className="animate-spin" />
+                                            <span>Redirecting to Stripe...</span>
+                                        </>
+                                    ) : (
+                                        <span>Book 30-min Call</span>
+                                    )}
                                 </button>
                             </div>
                         );
