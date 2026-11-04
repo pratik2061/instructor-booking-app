@@ -1,17 +1,8 @@
-import { useAuth } from "../../features/auth/auth.context";
 import { useCurrentUser } from "../../features/auth/auth.queries";
-import { useToast } from "../../provider/toast-provider";
 import InstructorList from "../../features/instructor/components/InstructorList";
 
 function StudentDashboard() {
     const { data: user } = useCurrentUser();
-    const { logout } = useAuth();
-    const toast = useToast();
-
-    const handleLogout = () => {
-        logout();
-        toast.info("Logged out successfully.");
-    };
 
     return (
         <main className="space-y-10">
